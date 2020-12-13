@@ -1,38 +1,9 @@
-import { mat3, vec2 } from "gl-matrix";
-import { WebGLBoilerplate } from "./webglboilerplate";
-import { DrawedObject } from "./drawedObject";
-
-class Renderer {
-    bp: WebGLBoilerplate;
-    gl: WebGL2RenderingContext;
-
-    objects: Record<string, DrawedObject> = {};
-
-    constructor(bp: WebGLBoilerplate) {
-        this.bp = bp;
-        this.gl = bp.gl;
-        this.bp.resize();
-    }
-
-    render() {
-        this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
-
-        this.gl.clearColor(0, 0, 0, 0);
-        this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
-
-        for (let id in this.objects) {
-            this.objects[id].render();
-        }
-    }
-
-    addObject(id: string, object: DrawedObject) {
-        this.objects[id] = object;
-    }
-}
+import { Boilerplate } from "./boilerplate";
+import { Renderer } from "./Renderer";
 
 export class App {
     renderer: Renderer;
-    bp: WebGLBoilerplate;
+    bp: Boilerplate;
 
     getSquareVertices(width: number, height: number): number[] {
         return [
@@ -45,31 +16,31 @@ export class App {
         ];
     }
 
-    constructor(bp: WebGLBoilerplate) {
+    constructor(bp: Boilerplate) {
         this.bp = bp;
         this.renderer = new Renderer(bp);
 
         const program = this.bp.createProgram('vertex', 'fragment');
 
-        const width = 70;
-        const height = 70;
+        const width = 60;
+        const height = 60;
+        const square = this.getSquareVertices(width, height);
 
-        for (let col = 0; col < 8; col++) {
-            for (let row = 0; row < 8; row++) {
-                const square = this.getSquareVertices(width, height);
-                const x = col * width;
-                const y = row * height;
-                const id = `square_${col}_${row}`;
-                this.renderer.addObject(id, new DrawedObject({
+        const texture = this.bp.createTexture('f-texture');
+        for (let x = 0; x < 8; x++) {
+            for (let y = 0; y < 8; y++) {
+                const id = `square_${x}_${y}`;
+
+                this.renderer.addObject(id, {
                     bp: this.bp,
                     program: program,
-                    uniforms: ['u_matrix', 'u_color'],
-                    attribs: ['a_position'],
+                    uniforms: ['u_matrix', 'u_texture'],
+                    attribs: ['a_position', 'a_textureCoordinates'],
                     geometry: square,
-                    x: x,
-                    y: y
-                }));
-
+                    texture: 'f-texture',
+                    x: x * width * 1.1,
+                    y: y * height * 1.1
+                });
             }
         }
     }

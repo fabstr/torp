@@ -1,8 +1,17 @@
 import { App } from "./app";
-import { WebGLBoilerplate } from "./webglboilerplate";
+import { Boilerplate } from "./boilerplate";
+import { Loader } from "./loader";
 
 function main() {
-    (new WebGLBoilerplate()).load().then(bp => {
+    const shaderURLs = {
+        'fragment': 'resources/shaders/fragment.frag',
+        'vertex': 'resources/shaders/vertex.vert'
+    };
+    const textureURLs = {
+        'f-texture': 'resources/f-texture.png'
+    }
+    Loader.load(shaderURLs, textureURLs).then(resources => {
+        const bp = new Boilerplate(resources.shaderSources, resources.textures);
         const app = new App(bp);
         app.run();
     });

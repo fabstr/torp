@@ -1,35 +1,91 @@
+import { App } from "./app";
+import { Boilerplate } from "./boilerplate";
+
+type NameURLPair = Record<string, string>;
+type Shader = Record<string, string>;
+type Texture = Record<string, HTMLImageElement>;
+
+enum PairType {
+    Shader, Texture
+};
+
+class Pair {
+    name: string;
+    data: string | HTMLImageElement;
+    type: PairType
+
+    constructor(name: string, data: string | HTMLImageElement, type: PairType) {
+        this.name = name;
+        this.data = data;
+        this.type = type;
+    }
+}
+
+class Resources {
+    shaderSources: Shader;
+    textures: Texture;
+    constructor(shaderSources: Shader, textures: Texture) {
+        this.shaderSources = shaderSources;
+        this.textures = textures;
+    }
+}
+
 export class Loader {
-    private sources: Record<string, string> = {};
+    private shaderSources: NameURLPair = {};
+    private textureURLs: NameURLPair = {};
 
-    constructor() { }
-
-    public addSource(name: string, url: string) {
-        this.sources[name] = url;
+    constructor(shaderSources: NameURLPair, textureURLs: NameURLPair) {
+        this.shaderSources = shaderSources;
+        this.textureURLs = textureURLs;
     }
 
-    private async get(name: string, url: string): Promise<Record<string, string>> {
+    private async getShaderSource(name: string): Promise<Pair> {
+        const url = this.shaderSources[name];
         const response = await (fetch(url));
-        const data = await response.text()
 
-        const o: Record<string, string> = {};
-        o[name] = data;
-        return o;
+        const data = await response.text();
+        return new Pair(name, data, PairType.Shader);
     };
 
-    public async load(): Promise<Record<string, string>> {
-        const promises: Promise<Record<string, string>>[] = [];
-        for (let key in this.sources) {
-            promises.push(this.get(key, this.sources[key]));
+    private async getTexture(name: string): Promise<Pair> {
+        return new Promise(resolve => {
+            const image = new Image();
+            image.addEventListener('load', () => {
+                const o: Record<string, HTMLImageElement> = {};
+                resolve(new Pair(name, image, PairType.Texture));
+            });
+            image.src = this.textureURLs[name];
+        });
+    }
+
+    public async load(): Promise<Resources> {
+        const promises: Promise<Pair>[] = [];
+
+        for (let key in this.shaderSources) {
+            promises.push(this.getShaderSource(key));
         }
+
+        for (let key in this.textureURLs) {
+            promises.push(this.getTexture(key));
+        }
+
         return Promise.all(promises)
-            .then(sourcesArray => {
-                const o: Record<string, string> = {};
-                sourcesArray.forEach(pair => {
-                    for (let key in pair) {
-                        o[key] = pair[key];
+            .then(pairs => {
+                const loadedShaderSources: Shader = {};
+                const loadedTextures: Texture = {};
+                pairs.forEach(pair => {
+                    if (pair.type === PairType.Shader) {
+                        loadedShaderSources[pair.name] = <string>pair.data;
+                    } else if (pair.type === PairType.Texture) {
+                        loadedTextures[pair.name] = <HTMLImageElement>pair.data;
                     }
                 });
-                return o;
+                return new Resources(loadedShaderSources, loadedTextures);
             });
+    }
+
+    static async load(shaderSources: NameURLPair, textureURLs: NameURLPair): Promise<Resources> {
+        const loader = new Loader(shaderSources, textureURLs);
+        return loader.load();
     }
 }

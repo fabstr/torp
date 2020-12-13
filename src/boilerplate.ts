@@ -1,12 +1,12 @@
-import { Loader } from "./loader";
-
-export class WebGLBoilerplate {
+export class Boilerplate {
     private canvas: HTMLCanvasElement;
     private shaderSources: Record<string, string> = {};
-    private loader: Loader;
     public gl: WebGL2RenderingContext;
 
-    constructor() {
+    private textureImages: Record<string, HTMLImageElement>;
+    private textureCache: Record<string, WebGLTexture> = {};
+
+    constructor(shaderSources: Record<string, string>, textureImages: Record<string, HTMLImageElement>) {
         const canvas: HTMLCanvasElement | null = document.querySelector("#c");
         if (canvas === null) {
             throw new Error("Canvas is null");
@@ -19,47 +19,8 @@ export class WebGLBoilerplate {
         }
         this.gl = gl;
 
-        this.loader = new Loader();
-        this.loader.addSource('fragment', 'resources/shaders/fragment.frag');
-        this.loader.addSource('vertex', 'resources/shaders/vertex.vert');
-    }
-
-    async load(): Promise<WebGLBoilerplate> {
-        return this.loader.load().then(source => {
-            this.shaderSources = source;
-            return this;
-        });
-    }
-
-    createShader(type: number, shaderName: string): WebGLShader {
-        const source = this.shaderSources[shaderName];
-        const shader = this.gl.createShader(type);
-
-        if (shader === null) {
-            throw new Error('shader is null');
-        }
-
-        this.gl.shaderSource(shader, source);
-        this.gl.compileShader(shader);
-
-        if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
-            const msg = this.gl.getShaderInfoLog(shader);
-            this.gl.deleteShader(shader);
-            if (msg === null) {
-                throw new Error('msg is null');
-            }
-            throw new Error(msg);
-        }
-
-        return shader;
-    }
-
-    createVertexShader(name: string): WebGLShader {
-        return this.createShader(this.gl.VERTEX_SHADER, name);
-    }
-
-    createFragmentShader(name: string): WebGLShader {
-        return this.createShader(this.gl.FRAGMENT_SHADER, name);
+        this.shaderSources = shaderSources;
+        this.textureImages = textureImages;
     }
 
     createProgram(vertexShaderName: string, fragmentShaderName: string): WebGLProgram {
@@ -82,6 +43,80 @@ export class WebGLBoilerplate {
         }
 
         return program;
+    }
+
+    createVertexShader(name: string): WebGLShader {
+        return this.createShader(this.gl.VERTEX_SHADER, name);
+    }
+
+    createFragmentShader(name: string): WebGLShader {
+        return this.createShader(this.gl.FRAGMENT_SHADER, name);
+    }
+
+    createShader(type: number, shaderName: string): WebGLShader {
+        const source = this.shaderSources[shaderName];
+        const shader = this.gl.createShader(type);
+
+        if (shader === null) {
+            throw new Error('shader is null');
+        }
+
+        if (source === undefined) {
+            throw new Error(`Unknown shader "${shaderName}"`);
+        }
+
+        this.gl.shaderSource(shader, source);
+        this.gl.compileShader(shader);
+
+        if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
+            const msg = this.gl.getShaderInfoLog(shader);
+            this.gl.deleteShader(shader);
+            if (msg === null) {
+                throw new Error('msg is null');
+            }
+            throw new Error(msg);
+        }
+
+        return shader;
+    }
+
+    createTexture(name: string): WebGLTexture {
+        if (this.textureCache[name] !== undefined) {
+            return this.textureCache[name];
+        }
+
+        const texture: WebGLTexture | null = this.gl.createTexture();
+        if (texture === null) {
+            throw new Error("texture is null");
+        }
+        this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
+
+        const color = new Uint8Array([50, 150, 255, 255]);
+        this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, 1, 1, 0, this.gl.RGBA,
+            this.gl.UNSIGNED_BYTE, color);
+
+        const image = this.textureImages[name];
+        // console.log(name);
+        // image.src = `resources/${name}.png`;
+        // image.addEventListener('load', () => {
+        this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
+        this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, image);
+
+        if (this.isPowerOf2(image.width) && this.isPowerOf2(image.height)) {
+            this.gl.generateMipmap(this.gl.TEXTURE_2D);
+        } else {
+            this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
+            this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
+            this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR);
+        }
+        // });
+
+        this.textureCache[name] = texture;
+        return texture;
+    }
+
+    isPowerOf2(value: number): boolean {
+        return (value & (value - 1)) == 0;
     }
 
     resize() {
