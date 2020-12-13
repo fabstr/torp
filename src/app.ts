@@ -1,9 +1,10 @@
 import { Boilerplate } from "./boilerplate";
+import { Loader } from "./loader";
 import { Renderer } from "./Renderer";
 
 export class App {
-    renderer: Renderer;
-    bp: Boilerplate;
+    private renderer: Renderer;
+    private bp: Boilerplate;
 
     getSquareVertices(width: number, height: number): number[] {
         return [
@@ -26,9 +27,8 @@ export class App {
         const height = 60;
         const square = this.getSquareVertices(width, height);
 
-        const texture = this.bp.createTexture('f-texture');
-        for (let x = 0; x < 8; x++) {
-            for (let y = 0; y < 8; y++) {
+        for (let x = 0; x < 12; x++) {
+            for (let y = 0; y < 9; y++) {
                 const id = `square_${x}_${y}`;
 
                 this.renderer.addObject(id, {
@@ -48,4 +48,20 @@ export class App {
     run() {
         this.renderer.render();
     }
+
+    static start() {
+        const shaderURLs = {
+            'fragment': 'resources/shaders/fragment.frag',
+            'vertex': 'resources/shaders/vertex.vert'
+        };
+        const textureURLs = {
+            'f-texture': 'resources/f-texture.png'
+        }
+        Loader.load(shaderURLs, textureURLs).then(resources => {
+            const bp = new Boilerplate(resources.shaderSources, resources.textures);
+            const app = new App(bp);
+            app.run();
+        });
+    }
+
 }
