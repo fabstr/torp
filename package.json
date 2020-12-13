@@ -1,16 +1,22 @@
 {
   "name": "torp",
   "version": "0.0.1",
-  "description": "",
+  "description": "A farming, mining and crafting game.",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "watch": "tsc -w",
-    "build": "tsc",
+    "watch": "webpack --mode development --watch",
+    "build": "webpack --mode production",
     "serve": "python server.py"
   },
   "author": "Fabian Ström",
   "license": "MIT",
   "devDependencies": {
-    "typescript": "^4.1.2"
+    "ts-loader": "^8.0.12",
+    "typescript": "^4.1.2",
+    "webpack": "^5.10.1",
+    "webpack-cli": "^4.2.0",
+    "webpack-dev-server": "^3.11.0"
+  },
+  "dependencies": {
+    "gl-matrix": "^3.3.0"
   }
 }

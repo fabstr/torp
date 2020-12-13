@@ -4,7 +4,9 @@ export class WebGLBoilerplate {
     private canvas: HTMLCanvasElement;
     private shaderSources: Record<string, string> = {};
     private loader: Loader;
+    private locations: Record<string, WebGLUniformLocation | number> = {};
     public gl: WebGL2RenderingContext;
+    public program: WebGLProgram | null = null;
 
     constructor() {
         const canvas: HTMLCanvasElement | null = document.querySelector("#c");
@@ -20,8 +22,8 @@ export class WebGLBoilerplate {
         this.gl = gl;
 
         this.loader = new Loader();
-        this.loader.addSource('fragment', 'src/shaders/fragment.frag');
-        this.loader.addSource('vertex', 'src/shaders/vertex.vert');
+        this.loader.addSource('fragment', 'resources/shaders/fragment.frag');
+        this.loader.addSource('vertex', 'resources/shaders/vertex.vert');
     }
 
     async load(): Promise<WebGLBoilerplate> {
@@ -82,6 +84,7 @@ export class WebGLBoilerplate {
             throw new Error(msg);
         }
 
+        this.program = program;
         return program;
     }
 
@@ -104,4 +107,45 @@ export class WebGLBoilerplate {
         }
     }
 
+    getUniformLocation(name: string): WebGLUniformLocation {
+        if (this.program === null) {
+            throw new Error("program is null, create a program first!");
+        }
+
+        const uniform_location = this.gl.getUniformLocation(this.program, name);
+        if (uniform_location === null) {
+            throw new Error('Could not get uniform location of ' + name);
+        }
+
+        return uniform_location;
+    }
+
+    getAttribLocation(name: string): number {
+        if (this.program === null) {
+            throw new Error("program is null, create a program first!");
+        }
+
+        const attribute_location = this.gl.getAttribLocation(this.program, name);
+        if (attribute_location === null) {
+            throw new Error('Could not get uniform location of ' + name);
+        }
+
+        return attribute_location;
+    }
+
+    createBuffer(): WebGLBuffer {
+        const buffer = this.gl.createBuffer();
+        if (buffer === null) {
+            throw new Error("Buffer is null!");
+        }
+        return buffer;
+    }
+
+    createVertexArray() {
+        const array = this.gl.createVertexArray();
+        if (array === null) {
+            throw new Error("vertex is null!");
+        }
+        return array;
+    }
 }
