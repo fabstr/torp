@@ -4,9 +4,7 @@ export class WebGLBoilerplate {
     private canvas: HTMLCanvasElement;
     private shaderSources: Record<string, string> = {};
     private loader: Loader;
-    private locations: Record<string, WebGLUniformLocation | number> = {};
     public gl: WebGL2RenderingContext;
-    public program: WebGLProgram | null = null;
 
     constructor() {
         const canvas: HTMLCanvasElement | null = document.querySelector("#c");
@@ -64,15 +62,14 @@ export class WebGLBoilerplate {
         return this.createShader(this.gl.FRAGMENT_SHADER, name);
     }
 
-    createProgram(shaders: WebGLShader[]): WebGLProgram {
+    createProgram(vertexShaderName: string, fragmentShaderName: string): WebGLProgram {
         const program: WebGLProgram | null = this.gl.createProgram();
         if (program === null) {
             throw new Error('program is null');
         }
 
-        for (let shader of shaders) {
-            this.gl.attachShader(program, shader);
-        }
+        this.gl.attachShader(program, this.createVertexShader(vertexShaderName));
+        this.gl.attachShader(program, this.createFragmentShader(fragmentShaderName));
 
         this.gl.linkProgram(program);
         if (!this.gl.getProgramParameter(program, this.gl.LINK_STATUS)) {
@@ -84,53 +81,18 @@ export class WebGLBoilerplate {
             throw new Error(msg);
         }
 
-        this.program = program;
         return program;
     }
 
     resize() {
         const cssToRealPixels = window.devicePixelRatio || 1;
-
-        // Lookup the size the browser is displaying the canvas in CSS pixels
-        // and compute a size needed to make our drawingbuffer match it in
-        // device pixels.
         const displayWidth = Math.floor(this.canvas.clientWidth * cssToRealPixels);
         const displayHeight = Math.floor(this.canvas.clientHeight * cssToRealPixels);
 
-        // Check if the canvas is not the same size.
-        if (this.canvas.width !== displayWidth ||
-            this.canvas.height !== displayHeight) {
-
-            // Make the canvas the same size
+        if (this.canvas.width !== displayWidth || this.canvas.height !== displayHeight) {
             this.canvas.width = displayWidth;
             this.canvas.height = displayHeight;
         }
-    }
-
-    getUniformLocation(name: string): WebGLUniformLocation {
-        if (this.program === null) {
-            throw new Error("program is null, create a program first!");
-        }
-
-        const uniform_location = this.gl.getUniformLocation(this.program, name);
-        if (uniform_location === null) {
-            throw new Error('Could not get uniform location of ' + name);
-        }
-
-        return uniform_location;
-    }
-
-    getAttribLocation(name: string): number {
-        if (this.program === null) {
-            throw new Error("program is null, create a program first!");
-        }
-
-        const attribute_location = this.gl.getAttribLocation(this.program, name);
-        if (attribute_location === null) {
-            throw new Error('Could not get uniform location of ' + name);
-        }
-
-        return attribute_location;
     }
 
     createBuffer(): WebGLBuffer {
@@ -147,5 +109,39 @@ export class WebGLBoilerplate {
             throw new Error("vertex is null!");
         }
         return array;
+    }
+
+    getUniformLocation(program: WebGLProgram, name: string): WebGLUniformLocation {
+        const uniformLocation = this.gl.getUniformLocation(program, name);
+        if (uniformLocation === null) {
+            throw new Error('Could not get uniform location of ' + name);
+        }
+
+        return uniformLocation;
+    }
+
+    getUniformLocations(program: WebGLProgram, names: string[]): Record<string, WebGLUniformLocation> {
+        const uniforms: Record<string, WebGLUniformLocation> = {};
+        names.forEach(name => {
+            uniforms[name] = this.getUniformLocation(program, name);
+        });
+        return uniforms;
+    }
+
+    getAttribLocation(program: WebGLProgram, name: string): number {
+        const attribute_location = this.gl.getAttribLocation(program, name);
+        if (attribute_location === null) {
+            throw new Error('Could not get uniform location of ' + name);
+        }
+
+        return attribute_location;
+    }
+
+    getAttribLocations(program: WebGLProgram, names: string[]): Record<string, number> {
+        const uniforms: Record<string, number> = {};
+        names.forEach(name => {
+            uniforms[name] = this.getAttribLocation(program, name);
+        });
+        return uniforms;
     }
 }
