@@ -2,8 +2,6 @@ import { mat3, vec2 } from "gl-matrix";
 import { Boilerplate } from "./boilerplate";
 
 export interface DrawedObjectParams {
-    bp: Boilerplate;
-    program: WebGLProgram;
     uniforms: string[]
     attribs: string[]
     geometry: number[];
@@ -32,17 +30,18 @@ export class DrawedObject {
     private rotation: number = 0;
     private scale: vec2 = [1, 1];
 
-    constructor(params: DrawedObjectParams) {
-        this.bp = params.bp;
+    constructor(bp: Boilerplate, program: WebGLProgram, params: DrawedObjectParams) {
+        this.program = program;
+        this.bp = bp;
         this.gl = this.bp.gl;
-        this.program = params.program;
-        this.uniforms = this.bp.getUniformLocations(this.program, params.uniforms);
+        this.uniforms = this.bp.getUniformLocations(program, params.uniforms);
         this.attribs = this.bp.getAttribLocations(this.program, params.attribs);
 
         this.geometryVerticesBuffer = this.bp.createBuffer();
         this.initGeometryBuffer(params.geometry);
         this.vertexArray = this.bp.createVertexArray();
         this.gl.bindVertexArray(this.vertexArray);
+
 
         this.textureBuffer = this.bp.createBuffer();
         this.initTextureCoordinatesBuffer(params);
