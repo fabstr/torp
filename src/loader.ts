@@ -1,12 +1,19 @@
-import { App } from "./app";
-import { Boilerplate } from "./boilerplate";
-
 type NameURLPair = Record<string, string>;
 type Shader = Record<string, string>;
 type Texture = Record<string, HTMLImageElement>;
+type Map = Record<string, any>;
+type getter = (name: string) => Promise<Pair>;
 
 enum PairType {
-    Shader, Texture
+    Shader,
+    Texture,
+    Map
+};
+
+interface LoaderEntity<T> {
+    URLs: NameURLPair;
+    getFunction: getter;
+    data: Record<string, T>;
 };
 
 class Pair {
@@ -33,16 +40,17 @@ class Resources {
 export class Loader {
     private shaderSources: NameURLPair = {};
     private textureURLs: NameURLPair = {};
+    private mapURLs: NameURLPair = {};
 
-    constructor(shaderSources: NameURLPair, textureURLs: NameURLPair) {
+    constructor(shaderSources: NameURLPair, textureURLs: NameURLPair, mapURLs: NameURLPair) {
         this.shaderSources = shaderSources;
         this.textureURLs = textureURLs;
+        this.mapURLs = mapURLs;
     }
 
     private async getShaderSource(name: string): Promise<Pair> {
         const url = this.shaderSources[name];
         const response = await (fetch(url));
-
         const data = await response.text();
         return new Pair(name, data, PairType.Shader);
     };
@@ -58,6 +66,13 @@ export class Loader {
         });
     }
 
+    private async getMap(name: string): Promise<Pair> {
+        const url = this.shaderSources[name];
+        const response = await (fetch(url));
+        const data = await response.text();
+        return new Pair(name, JSON.parse(data), PairType.Shader);
+    }
+
     public async load(): Promise<Resources> {
         const promises: Promise<Pair>[] = [];
 
@@ -69,23 +84,30 @@ export class Loader {
             promises.push(this.getTexture(key));
         }
 
+        for (let key in this.mapURLs) {
+            promises.push(this.getMap(key));
+        }
+
         return Promise.all(promises)
             .then(pairs => {
                 const loadedShaderSources: Shader = {};
                 const loadedTextures: Texture = {};
+                const loadedMaps: Record<string, any> = {};
                 pairs.forEach(pair => {
                     if (pair.type === PairType.Shader) {
                         loadedShaderSources[pair.name] = <string>pair.data;
                     } else if (pair.type === PairType.Texture) {
                         loadedTextures[pair.name] = <HTMLImageElement>pair.data;
+                    } else if (pair.type === PairType.Map) {
+                        loadedMaps[pair.name] = <Map>pair.data;
                     }
                 });
                 return new Resources(loadedShaderSources, loadedTextures);
             });
     }
 
-    static async load(shaderSources: NameURLPair, textureURLs: NameURLPair): Promise<Resources> {
-        const loader = new Loader(shaderSources, textureURLs);
+    static async load(shaderSources: NameURLPair, textureURLs: NameURLPair, mapURLs: NameURLPair): Promise<Resources> {
+        const loader = new Loader(shaderSources, textureURLs, mapURLs);
         return loader.load();
     }
 }

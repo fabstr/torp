@@ -7,19 +7,20 @@ export interface DrawedObjectParams {
     uniforms: string[]
     attribs: string[]
     geometry: number[];
+    texture: string;
     x?: number;
     y?: number;
-    rotation?: number;
-    scaleX?: number;
-    scaleY?: number;
-    texture: string;
+    texturePositionX?: number;
+    texturePositionY?: number;
+    textureWidth?: number;
+    textureHeight?: number;
 }
 
 export class DrawedObject {
     private gl: WebGL2RenderingContext;
     private bp: Boilerplate;
     private program: WebGLProgram;
-    private buffer: WebGLBuffer;
+    private geometryVerticesBuffer: WebGLBuffer;
     private textureBuffer: WebGLBuffer;
     private vertexArray: WebGLVertexArrayObject;
     private attribs: Record<string, number> = {};
@@ -38,47 +39,42 @@ export class DrawedObject {
         this.uniforms = this.bp.getUniformLocations(this.program, params.uniforms);
         this.attribs = this.bp.getAttribLocations(this.program, params.attribs);
 
-        this.buffer = this.bp.createBuffer();
+        this.geometryVerticesBuffer = this.bp.createBuffer();
         this.initGeometryBuffer(params.geometry);
         this.vertexArray = this.bp.createVertexArray();
         this.gl.bindVertexArray(this.vertexArray);
 
         this.textureBuffer = this.bp.createBuffer();
-        this.initTextureBuffer();
+        this.initTextureCoordinatesBuffer(params);
         this.texture = this.bp.createTexture(params.texture);
 
         this.projectionMatrix = this.calculateProjectionMatrix();
 
         if (params.x !== undefined && params.y !== undefined) {
-            this.translation = [params.x, params.y];
+            this.setPosition(params.x, params.y);
         }
-
-        if (params.rotation !== undefined) {
-            this.rotation = params.rotation;
-        }
-
-        if (params.scaleX !== undefined && params.scaleY !== undefined) {
-            this.scale = [params.scaleX, params.scaleY];
-        }
-
     }
 
     initGeometryBuffer(geometry: number[]) {
         // upload vertex data
-        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffer);
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.geometryVerticesBuffer);
         this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(geometry), this.gl.STATIC_DRAW);
     }
 
-    initTextureBuffer() {
-        // upload texture data
+    initTextureCoordinatesBuffer(params: DrawedObjectParams) {
+        const x1: number = params.texturePositionX !== undefined ? params.texturePositionX : 0;
+        const y1: number = params.texturePositionY !== undefined ? params.texturePositionY : 0;
+        const x2: number = x1 + (params.textureWidth !== undefined ? params.textureWidth : 1);
+        const y2: number = y1 + (params.textureHeight !== undefined ? params.textureHeight : 1);
+
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.textureBuffer);
         this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array([
-            0, 0,
-            0, 1,
-            1, 1,
-            0, 0,
-            1, 0,
-            1, 1
+            x1, y1,
+            x1, y2,
+            x2, y2,
+            x1, y1,
+            x2, y1,
+            x2, y2
         ]), this.gl.STATIC_DRAW);
     }
 
@@ -104,6 +100,10 @@ export class DrawedObject {
         this.setRotationRadians(angle * Math.PI / 180);
     }
 
+    setScale(x: number, y: number) {
+        this.scale = [x, y];
+    }
+
     getTransformationMatrix(): mat3 {
         const matrix = mat3.clone(this.projectionMatrix);
         mat3.translate(matrix, matrix, this.translation);
@@ -113,7 +113,7 @@ export class DrawedObject {
     }
 
     render() {
-        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffer);
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.geometryVerticesBuffer);
         this.gl.vertexAttribPointer(this.attribs['a_position'], 2, this.gl.FLOAT, false, 0, 0);
         this.gl.enableVertexAttribArray(this.attribs['a_position']);
 

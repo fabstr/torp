@@ -18,6 +18,8 @@ export class Boilerplate {
             throw new Error("No webgl2");
         }
         this.gl = gl;
+        this.gl.enable(this.gl.BLEND);
+        this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
 
         this.shaderSources = shaderSources;
         this.textureImages = textureImages;
@@ -91,14 +93,7 @@ export class Boilerplate {
         }
         this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
 
-        const color = new Uint8Array([50, 150, 255, 255]);
-        this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, 1, 1, 0, this.gl.RGBA,
-            this.gl.UNSIGNED_BYTE, color);
-
         const image = this.textureImages[name];
-        // console.log(name);
-        // image.src = `resources/${name}.png`;
-        // image.addEventListener('load', () => {
         this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
         this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, image);
 
