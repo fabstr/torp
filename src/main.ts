@@ -16,8 +16,8 @@ function main() {
         'environment': 'resources/map/environment.json',
     });
 
-    const loader = Loader.load(shaders, textures, map).then(() => {
-        const app = new App(shaders.data, textures.data);
+    Loader.load(shaders, textures, map).then(() => {
+        const app = new App(shaders.data, textures.data, map.data);
         app.run();
     });
 }

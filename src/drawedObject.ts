@@ -2,9 +2,9 @@ import { mat3, vec2 } from "gl-matrix";
 import { Boilerplate } from "./boilerplate";
 
 export interface DrawedObjectParams {
-    uniforms: string[]
-    attribs: string[]
-    geometry: number[];
+    uniforms: string[];
+    attribs: string[];
+    geometry: string;
     texture: string;
     x?: number;
     y?: number;
@@ -38,7 +38,10 @@ export class DrawedObject {
         this.attribs = this.bp.getAttribLocations(this.program, params.attribs);
 
         this.geometryVerticesBuffer = this.bp.createBuffer();
-        this.initGeometryBuffer(params.geometry);
+
+        if (params.geometry === 'square_64_64') {
+            this.initGeometryBuffer(this.getSquareVertices(64, 64));
+        }
         this.vertexArray = this.bp.createVertexArray();
         this.gl.bindVertexArray(this.vertexArray);
 
@@ -52,6 +55,17 @@ export class DrawedObject {
         if (params.x !== undefined && params.y !== undefined) {
             this.setPosition(params.x, params.y);
         }
+    }
+
+    private getSquareVertices(width: number, height: number): number[] {
+        return [
+            0, 0,
+            0, height,
+            width, height,
+            0, 0,
+            width, 0,
+            width, height
+        ];
     }
 
     initGeometryBuffer(geometry: number[]) {
